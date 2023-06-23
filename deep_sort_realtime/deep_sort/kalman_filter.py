@@ -47,14 +47,7 @@ class KalmanFilter(object):
 
         # Create Kalman filter model matrices.
 
-        self.F = np.array([[1, 0, 0, 0, dt, 0, 0, 0],
-                           [0, 1, 0, 0, 0, dt, 0, 0],
-                           [0, 0, 1, 0, 0, 0, dt, 0],
-                           [0, 0, 0, 1, 0, 0, 0, dt],
-                           [0, 0, 0, 0, 1, 0, 0, 0],
-                           [0, 0, 0, 0, 0, 1, 0, 0],
-                           [0, 0, 0, 0, 0, 0, 1, 0],
-                           [0, 0, 0, 0, 0, 0, 0, 1]])
+        self.F = np.eye(nx) + np.eye(nx, k=nz) * dt
 
         self.H = np.array([1, 1, 1, 1, 0, 0, 0, 0])
 
