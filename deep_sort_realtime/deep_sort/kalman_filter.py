@@ -84,7 +84,7 @@ class KalmanFilter(object):
 
         """
         # assuming that measurement is a (4,1) matrix
-        mean = np.vstack((measurement, np.zeros((4, 1))))
+        mean = np.append(measurement, np.zeros(4))
         covariance = self.P_0
 
         return mean, covariance
@@ -109,7 +109,7 @@ class KalmanFilter(object):
 
         """
         mean = np.dot(self.F, mean)
-        covariance = np.linalg.multi_dot(self.F, covariance, self.F.T)
+        covariance = np.linalg.multi_dot([self.F, covariance, self.F.T])
         return mean, covariance
 
     def project(self, mean, covariance):
@@ -130,7 +130,7 @@ class KalmanFilter(object):
 
         """
         mean = np.dot(self.F, mean)
-        covariance = np.linalg.multi_dot(self.F, covariance, self.F.T)
+        covariance = np.linalg.multi_dot([self.F, covariance, self.F.T])
         return mean, covariance
 
     def update(self, mean, covariance, measurement):
@@ -154,15 +154,15 @@ class KalmanFilter(object):
 
         """
         # calculating kalman gain
-        kg_multiplier_matrix = np.linalg.multi_dot(self.H, covariance, self.H.T) + self.R
-        kalman_gain_matrix = np.linalg.multi_dot(covariance, self.H.T, np.linalg.inv(kg_multiplier_matrix))
+        kg_multiplier_matrix = np.linalg.multi_dot([self.H, covariance, self.H.T]) + self.R
+        kalman_gain_matrix = np.linalg.multi_dot([covariance, self.H.T, np.linalg.inv(kg_multiplier_matrix)])
 
         # updating state (mean and covariance)
         new_mean = mean + np.dot(kalman_gain_matrix, measurement - np.dot(self.H, mean))
 
         cov_multiplier_matrix = np.identity(kalman_gain_matrix.shape[0]) - np.dot(kalman_gain_matrix, self.H)
-        new_covariance = np.linalg.multi_dot(cov_multiplier_matrix, covariance, cov_multiplier_matrix.T) + \
-                         np.linalg.multi_dot(kalman_gain_matrix, self.R, kalman_gain_matrix.T)
+        new_covariance = np.linalg.multi_dot([cov_multiplier_matrix, covariance, cov_multiplier_matrix.T]) + \
+                         np.linalg.multi_dot([kalman_gain_matrix, self.R, kalman_gain_matrix.T])
 
         return new_mean, new_covariance
 
