@@ -2,7 +2,6 @@
 import numpy as np
 import scipy.linalg
 
-
 """
 Table for the 0.95 quantile of the chi-square distribution with N degrees of
 freedom (contains values for N=1, ..., 9). Taken from MATLAB/Octave's chi2inv
@@ -40,14 +39,32 @@ class KalmanFilter(object):
     """
 
     def __init__(self):
-        dt=1.0
+        dt = 1.0
+        # no of state variables (x, y, a, h, vx, vy, va, vh)
+        nx = 8
+        # no of measured states (x, y, a, h)
+        nz = 4
 
         # Create Kalman filter model matrices.
- ##ADD code
+
+        self.F = np.array([[1, 0, 0, 0, dt, 0, 0, 0],
+                           [0, 1, 0, 0, 0, dt, 0, 0],
+                           [0, 0, 1, 0, 0, 0, dt, 0],
+                           [0, 0, 0, 1, 0, 0, 0, dt],
+                           [0, 0, 0, 0, 1, 0, 0, 0],
+                           [0, 0, 0, 0, 0, 1, 0, 0],
+                           [0, 0, 0, 0, 0, 0, 1, 0],
+                           [0, 0, 0, 0, 0, 0, 0, 1]])
+
+        self.H = np.array([1, 1, 1, 1, 0, 0, 0, 0])
+
         # Motion and observation uncertainty are chosen relative to the current
         # state estimate. These weights control the amount of uncertainty in
         # the model. This is a bit hacky.
-##ADD code
+        # assuming that the state variables are independent and all have same std
+        err = 0.01
+        self.R = np.eye(nz) * err
+        self.P_0 = np.eye(nx) * err
 
     def initiate(self, measurement):
         """Create track from unassociated measurement.
@@ -66,7 +83,10 @@ class KalmanFilter(object):
             to 0 mean.
 
         """
-##ADD code
+        # assuming that measurement is a (4,1) matrix
+        mean = np.vstack((measurement, np.zeros((4, 1))))
+        covariance = self.P_0
+
         return mean, covariance
 
     def predict(self, mean, covariance):
@@ -88,7 +108,8 @@ class KalmanFilter(object):
             state. Unobserved velocities are initialized to 0 mean.
 
         """
-##ADD code
+        mean = np.dot(self.F, mean)
+        covariance = np.linalg.multi_dot(self.F, covariance, self.F.T)
         return mean, covariance
 
     def project(self, mean, covariance):
@@ -108,7 +129,8 @@ class KalmanFilter(object):
             estimate.
 
         """
-##ADD code
+        mean = np.dot(self.F, mean)
+        covariance = np.linalg.multi_dot(self.F, covariance, self.F.T)
         return mean, covariance
 
     def update(self, mean, covariance, measurement):
@@ -131,7 +153,17 @@ class KalmanFilter(object):
             Returns the measurement-corrected state distribution.
 
         """
-##ADD code
+        # calculating kalman gain
+        kg_multiplier_matrix = np.linalg.multi_dot(self.H, covariance, self.H.T) + self.R
+        kalman_gain_matrix = np.linalg.multi_dot(covariance, self.H.T, np.linalg.inv(kg_multiplier_matrix))
+
+        # updating state (mean and covariance)
+        new_mean = mean + np.dot(kalman_gain_matrix, measurement - np.dot(self.H, mean))
+
+        cov_multiplier_matrix = np.identity(kalman_gain_matrix.shape[0]) - np.dot(kalman_gain_matrix, self.H)
+        new_covariance = np.linalg.multi_dot(cov_multiplier_matrix, covariance, cov_multiplier_matrix.T) + \
+                         np.linalg.multi_dot(kalman_gain_matrix, self.R, kalman_gain_matrix.T)
+
         return new_mean, new_covariance
 
     def gating_distance(self, mean, covariance, measurements, only_position=False):
