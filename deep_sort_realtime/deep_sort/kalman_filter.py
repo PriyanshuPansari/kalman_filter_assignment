@@ -76,8 +76,8 @@ class KalmanFilter(object):
             to 0 mean.
 
         """
-        # assuming that measurement is a (4,1) matrix
-        mean = np.append(measurement, np.zeros(4))
+        # assuming that measurement is a 4d array
+        mean = np.append(measurement, np.zeros(measurement.shape))
         covariance = self.P_0
 
         return mean, covariance
